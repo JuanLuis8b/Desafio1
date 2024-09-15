@@ -4,15 +4,12 @@
 
 Adafruit_LiquidCrystal lcd_1(0);
 
-//funciones de apoyo
-void copy ();
-
 //funciones
-void redimensionar();
+void redimensionar2D(int**&arr , int &capacidadC, int &capacidadF);
+void redimensionar1D();
 int frecuencia();
 int amplitud();
 void tipo ();
-bool presionado();
 
 //variables para leer los datos del generador
 int analogPin = A0;
@@ -22,13 +19,15 @@ int pulsador2 = 4;
 //variables globlales
 int dato = 0;
 int capDatos = 1000;
-int capCiclos = 3;
+int capCiclos = 2;
 
-int **ciclos = new int*[capCiclos];
-for (unsigned int i = 0; i < capCiclos; i++){
-    ciclos[i] = new int [capDatos]; }
+int **ciclos;
+int *intervalos;
 
-int numelem=0;
+int numCiclo=0;
+int numDato=0;
+
+int estadoAdquisicion= false;
 
 //setup
 void setup() {
@@ -37,16 +36,47 @@ void setup() {
   pinMode (pulsador1, INPUT);
   pinMode (pulsador2, INPUT);
 
+  ciclos = new int*[capCiclos];
+  for (unsigned int i = 0; i < capCiclos; i++){
+    ciclos[i] = new int [capDatos]; }
+
+  intervalos = new int [capCiclos];
+
 }
 
 //loop
 void loop(){
 
- dato = analogRead(analogPin);
+  bool estadoPulsador = digitalRead(pulsador1);
+
+  if ( estadoAdquisicion ^ estadoPulsador){
+
+    estadoAdquisicion=!estadoAdquisicion;
+
+    int datoini = analogRead(analogPin);
+    int cont = 0;
+
+    do{
+
+    dato = analogRead(analogPin);
+    ciclos[numCiclo][numDato] = dato;
+    numDato++;
+      if (dato == datoini){
+        cont++;
+      }
+
+    }while (cont<2);
+
+    numCiclo++;
+
+  }
+
+}
+
 
 //implementacion de funciones
 
-void redimensionar(int**&arr , int &capacidadC, int &capacidadF){
+  void redimensionar2D(int**&arr , int &capacidadC, int &capacidadF){
 
   unsigned int nuevaCapC = capacidadC*2;
   unsigned int nuevaCapF = capacidadF*2;
@@ -65,15 +95,10 @@ void redimensionar(int**&arr , int &capacidadC, int &capacidadF){
   for (unsigned int i = 0; i < capacidadF;i++){
     delete[] arr[i];
   }
+
   delete [] arr;
 
-  arr = nuevoArr
+  arr = nuevoArr;
   capacidadC = nuevaCapC;
   capacidadF = nuevaCapF;
-}
-
-bool presionado(analogPin){
-
-
-
-}
+  }
