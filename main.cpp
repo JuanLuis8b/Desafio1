@@ -20,8 +20,8 @@ int pulsador2 = 4;
 int dato = 0;
 int ptTiempo = 0;
 
-int capPuntos = 100; //=capTiempos
-int capTiempos = 100;
+int capPuntos = 10; //=capTiempos
+int capTiempos = 10;
 
 int *puntos = nullptr;
 int *tiempos = nullptr;
@@ -29,11 +29,8 @@ int *tiempos = nullptr;
 int numPunto=0;//=numTiempo
 
 bool estadoAdquisicion= false;
-bool estadoAnteriorPulsador = false;
 
-float datoant = 0.5;
-
-int num = 1;
+int datoant;
 
 //setup
 void setup() {
@@ -54,40 +51,27 @@ void loop(){
     bool estadoPulsador = digitalRead(pulsador1);
 
     if (estadoPulsador){
+
+
+
       estadoAdquisicion =! estadoAdquisicion;
       while (digitalRead(pulsador1) == HIGH) {
-          delay(10); // Pequeña pausa para esperar que se suelte el pulsador
+          delay(10);
       }
     }
 
     if (estadoAdquisicion){
-      delay(1);
 
       dato = analogRead(analogPin);
+      ptTiempo = millis();
+      adquirirDatos(dato,datoant,ptTiempo,puntos,tiempos,numPunto,capPuntos,capTiempos);
 
-      if (dato != datoant){
-        datoant= dato;
-        puntos[numPunto] = dato;
-        ptTiempo = millis();
-        tiempos[numPunto] = ptTiempo;
-        numPunto++;
-
-        if (numPunto>=capPuntos){
-          redimensionar(puntos,capPuntos);
-          redimensionar (tiempos, capTiempos);
-        }
       }
-    }else{
-    return;
-    /*   delete [] puntos;
-    delete [] tiempos;
-    puntos = nullptr;
-    tiempos = nullptr;
-    numPunto = 0;
-    capPuntos = 100;
-    capTiempos = 100;
-    */
+
+    else{
+      liberarMemoria(puntos,tiempos,numPunto,capPuntos,capTiempos);
     }
+
     if (digitalRead(pulsador2)){
     return;
     }
@@ -107,5 +91,32 @@ void redimensionar(int *&arr, int &capacidad){
     }
 
 void calculo (){
+}
+
+void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiempos, int &numPunto, int&capPuntos, int &capTiempos){
+
+    if (dato != datoant){
+        datoant = dato;
+        puntos[numPunto] = dato;
+        ptTiempo = millis();
+        tiempos[numPunto] = ptTiempo;
+        numPunto++;
+
+        if (numPunto>=capPuntos){
+          redimensionar(puntos,capPuntos);
+          redimensionar (tiempos, capTiempos);
+        }
+}
+
+void liberarMemoria(int* &puntos, int* &tiempos, int &numPunto, int &capPuntos, int&capTiempos){
+
+  delete[] puntos;
+  delete[] tiempos;
+  puntos = nullptr;
+  tiempos = nullptr;
+  numPunto = 0;
+  capPuntos = 100;
+  capTiempos = 100;
+
 }
 
