@@ -53,17 +53,15 @@ void loop(){
 
     bool estadoPulsador = digitalRead(pulsador1);
 
-    if (estadoPulsador!=estadoPulsadorAnterior){
-        estadoPulsadorAnterior=estadoPulsador;
-        estadoAdquisicion = true;
+    if (estadoPulsador){
+      estadoAdquisicion =! estadoAdquisicion;
+      while (digitalRead(pulsador1) == HIGH) {
+          delay(10); // Pequeña pausa para esperar que se suelte el pulsador
+      }
     }
 
-    if (estadoAdquisicion ^ estadoPulsador){
-      estadoAdquisicion=!estadoAdquisicion;
+    if (estadoAdquisicion){
       delay(1);
-      Serial.print("continua ");
-      Serial.println(num);
-      num++;
 
       dato = analogRead(analogPin);
 
@@ -111,27 +109,3 @@ void redimensionar(int *&arr, int &capacidad){
 void calculo (){
 }
 
-
-
-bool debounce(int pulsador){
-
-    bool lectura = digitalRead(pulsador1);
-    unsigned long debounceDelay = 50; // Tiempo de debounce en milisegundos
-    unsigned long ultimoTiempoPulsador = 0;
-    bool ultimoEstadoPulsador = LOW;
-
-    if (lectura != ultimoEstadoPulsador) {
-        ultimoTiempoPulsador = millis();
-    }
-
-    if ((millis() - ultimoTiempoPulsador) > debounceDelay) {
-        if (lectura != estadoAdquisicion) {
-            estadoAdquisicion = lectura;
-            return true;
-        }
-    }
-
-    ultimoEstadoPulsador = lectura;
-    return false;
-
-}
