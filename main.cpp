@@ -18,16 +18,18 @@ int pulsador2 = 4;
 
 //variables globlales
 int dato = 0;
-int capDatos = 1000;
-int capCiclos = 2;
 
-int **ciclos;
-int *intervalos;
+int capPuntos = 100; //=capTiempos
+int capTiempos = 100;
 
-int numCiclo=0;
-int numDato=0;
+int *puntos;
+int *tiempos;
 
-int estadoAdquisicion= false;
+int numPunto=0;//=numTiempo
+
+bool estadoAdquisicion= false;
+
+float datoant = 0.1;
 
 //setup
 void setup() {
@@ -36,11 +38,8 @@ void setup() {
   pinMode (pulsador1, INPUT);
   pinMode (pulsador2, INPUT);
 
-  ciclos = new int*[capCiclos];
-  for (unsigned int i = 0; i < capCiclos; i++){
-    ciclos[i] = new int [capDatos]; }
-
-  intervalos = new int [capCiclos];
+  puntos = new int[capPuntos];
+  tiempos = new int [capPuntos];
 
 }
 
@@ -49,56 +48,55 @@ void loop(){
 
   bool estadoPulsador = digitalRead(pulsador1);
 
-  if ( estadoAdquisicion ^ estadoPulsador){
+  if (estadoAdquisicion ^ estadoPulsador){
 
     estadoAdquisicion=!estadoAdquisicion;
 
-    int datoini = analogRead(analogPin);
-    int cont = 0;
-
-    do{
+    delay(1);
 
     dato = analogRead(analogPin);
-    ciclos[numCiclo][numDato] = dato;
-    numDato++;
-      if (dato == datoini){
-        cont++;
+
+    if (dato != datoant){
+
+        datoanterior = dato;
+        puntos[numPunto] = dato;
+        numPunto++;
+
+        ptTiempo = millis();
+        tiempos[numPunto] = ptTiempo;
+
+        if (numPunto>=capPuntos){
+           redimensionar(puntos,capPuntos);
+           redimensionar (tiempos, capTiempos);
+        }
       }
+    }
 
-    }while (cont<2);
-
-    numCiclo++;
-
+   if (digitalRead(pulsador2)){
+     continue
   }
 
-}
-
+  }//fin loop
 
 //implementacion de funciones
 
-  void redimensionar2D(int**&arr , int &capacidadC, int &capacidadF){
+void redimensionar(int *&arr, int &capacidad){
 
-  unsigned int nuevaCapC = capacidadC*2;
-  unsigned int nuevaCapF = capacidadF*2;
+ unsigned int nuevaCap = capacidad*2;
 
-  int**nuevoArr = new int *[nuevaCapF];
-  for (unsigned int i = 0; i < nuevaCapF;i++){
-    nuevoArr[i] = new int [nuevaCapC];
-  }
+  int *nuevoArr = new int [nuevaCap];
 
-  for (unsigned int i = 0; i < capacidadF; i++) {
-     for (unsigned int j = 0; j < capacidadC; j++) {
-         nuevoArr[i][j] = arr[i][j];
-     }
-  }
-
-  for (unsigned int i = 0; i < capacidadF;i++){
-    delete[] arr[i];
+  for (unsigned int i = 0; i<capacidad;i++){
+    nuevoArr[i] = arr[i];
   }
 
   delete [] arr;
 
   arr = nuevoArr;
-  capacidadC = nuevaCapC;
-  capacidadF = nuevaCapF;
-  }
+  capacidad = nuevaCap;
+}
+
+void calculo (){
+
+
+}
