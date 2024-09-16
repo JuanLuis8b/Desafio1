@@ -5,11 +5,13 @@
 Adafruit_LiquidCrystal lcd_1(0);
 
 //funciones
-void redimensionar2D(int**&arr , int &capacidadC, int &capacidadF);
-void redimensionar1D();
+void redimensionar();
 int frecuencia();
 int amplitud();
 void tipo ();
+void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiempos, int &numPunto, int&capPuntos, int &capTiempos);
+void liberarMemoria(int* &puntos, int* &tiempos, int &numPunto, int &capPuntos, int&capTiempos);
+
 
 //variables para leer los datos del generador
 int analogPin = A0;
@@ -43,16 +45,15 @@ void setup() {
 //loop
 void loop(){
 
-    if (puntos == nullptr && tiempos == nullptr){
-      puntos = new int [capPuntos];
-      tiempos = new int [capPuntos];
-    }
 
     bool estadoPulsador = digitalRead(pulsador1);
 
     if (estadoPulsador){
 
-
+      if (puntos == nullptr && tiempos == nullptr){
+         puntos = new int [capPuntos];
+         tiempos = new int [capPuntos];
+      }
 
       estadoAdquisicion =! estadoAdquisicion;
       while (digitalRead(pulsador1) == HIGH) {
@@ -64,6 +65,8 @@ void loop(){
 
       dato = analogRead(analogPin);
       ptTiempo = millis();
+      Serial.print("dato");
+      Serial.println(numPunto);
       adquirirDatos(dato,datoant,ptTiempo,puntos,tiempos,numPunto,capPuntos,capTiempos);
 
       }
@@ -80,6 +83,7 @@ void loop(){
 //implementacion de funciones
 
 void redimensionar(int *&arr, int &capacidad){
+    Serial.println("redimensionar");
     unsigned int nuevaCap = capacidad*2;
     int *nuevoArr = new int [nuevaCap];
     for (unsigned int i = 0; i<capacidad;i++){
@@ -101,22 +105,28 @@ void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiem
         ptTiempo = millis();
         tiempos[numPunto] = ptTiempo;
         numPunto++;
+        Serial.println("adquirir");
 
         if (numPunto>=capPuntos){
           redimensionar(puntos,capPuntos);
           redimensionar (tiempos, capTiempos);
         }
+    }
 }
 
 void liberarMemoria(int* &puntos, int* &tiempos, int &numPunto, int &capPuntos, int&capTiempos){
 
-  delete[] puntos;
-  delete[] tiempos;
-  puntos = nullptr;
-  tiempos = nullptr;
+  if (puntos != nullptr && tiempos != nullptr){
+
+    delete[] puntos;
+    delete[] tiempos;
+    puntos = nullptr;
+    tiempos = nullptr;
+    Serial.println("liberar");
+  }
+
   numPunto = 0;
-  capPuntos = 100;
-  capTiempos = 100;
+  capPuntos = 10;
+  capTiempos = 10;
 
 }
-
