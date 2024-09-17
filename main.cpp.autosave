@@ -77,8 +77,11 @@ void loop(){
 
     if (estadoPulsador2){
 
-      int a = tipoOnda(puntos, tiempos, numPunto);
+      int tipo = tipoOnda(puntos, tiempos, numPunto);
       int frec = frecuencia(puntos,tiempos)
+      int amp = 0;
+      
+      imprimirlcd(tipo,frec,amp);
 
     }
 }//fin loop
