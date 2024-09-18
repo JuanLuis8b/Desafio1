@@ -77,8 +77,14 @@ void loop(){
 
     if (estadoPulsador2){
 
-      int a = tipoOnda(puntos, tiempos, numPunto);
-      int frec = frecuencia(puntos,tiempos)
+        for (int i=0;i<=posicion,i++){
+
+
+            imprimirlcd(tipo,frec,amp);
+        }
+        int tipo = tipoOnda(puntos, tiempos, numPunto);
+        int frec = frecuencia(puntos,tiempos)
+        int amp = 0;
 
     }
 }//fin loop
@@ -227,4 +233,125 @@ void imprimirlcd(int tipoOnda; int frecuencia, int amplitud){
     lcd.print("A:");
     lcd.print(amplitud,1);
     lcd.print("V");
+}
+
+void borradorcompararpendientes(float*&pendientes;int tamaño){
+
+    int maximaRepeticion = 0;
+
+    for (int i = 0; i<tamaño,i++){
+        int contador = 1;
+        for (int j = i +1 ; j<tamaño;j++){
+            if (pendientes[i]==pendientes[j]){
+                contador++;
+            }
+        }
+
+        if(contador>maximaRepeticion){
+            maximaRepeticion = contador;
+        }
+    }
+    if (maximaRepeticion>(tamaño/2)){
+        return 2;
+    }
+    else{
+        return 3;
+    }
+}
+
+void borradorpendientes(int *& puntos, int *& tiempos,int jinicial,int jfinal){
+    int tamaño = (jfinal-jinicial)/2 + 2;
+    float *pendientes = new int [tamaño];
+    int c =0;
+    float m;
+    for (int i = jinicial;i<=jfinal;i+=2){
+        m = pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]);
+        if (m<=0){
+            pendientes[c] = -m;
+        }else{
+            pendientes[c] = m;
+        }
+    }
+
+    if (borradorcompararpendientes(pendientes,tamaño)==2){
+        return 2;
+    }
+    else{
+        return 3;
+    }
+}
+
+void borrador(int &numPunto,int *&puntos, int*& tiempos){
+
+    int *borradortipo = new int [10];
+    float *borradoramplitud = new int [10];
+    float *borradorfrecuencia = new int [10];
+
+    int posicion = 0;
+
+    for (int i = 0;i<numPunto;i+=2){
+        if (puntos[i]==puntos[i+2] && puntos[i] == (-puntos[i+1])){
+            borradortipo[posicion]=1;
+            if (puntos[i]<0) {
+                borradoramplitud[posicion]=((-puntos[i]+puntos[i+1])/2)/100;
+                }
+            else {
+                borradoramplitud[posicion]=((puntos[i]-puntos[i+1])/2)/100;
+            }
+            borradorfrecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i])*1000);
+        }
+        else{
+
+            int j=i;
+            int pico = puntos[j];
+
+            if (puntos[j]<puntos[j+1]){//va en subida
+                while (puntos[j+1]>pico){
+                    pico = puntos[j];
+                    j++;
+                }
+            } else{
+                while (puntos[j+1]<pico){//va en bajada
+                    pico = puntos[j];
+                    j++;
+                }
+            }
+            //j es la posicion del primer pico(sup/inf)
+            int jf = j;
+
+            int pico2 = puntos[j];
+
+            if (pico<0){//el pico es negativo
+                do{
+                jf++;
+                if (puntos[jf]>pico2){
+                    pico2 = puntos[jf];
+                }
+            }while(pico!=puntos[jf])
+            }else{//el pico es positivo
+                do{
+                jf++;
+                if (puntos[jf]<pico2){
+                    pico2 = puntos[jf];
+                }
+            }while(pico!=puntos[jf])
+            }
+            //jf es la posicion final del periodo
+
+            borradortipo[posicion]=borradorpendientes(puntos,tiempos,j,jf);
+
+            if (pico>0){
+                borradoramplitud[posicion]= ((pico-pico2)/2)/100;//porque pico2 es negativo
+            }else{
+                 borradoramplitud[posicion]= ((-pico+pico2)/2)/100;//porque pico2 es positivo
+            }
+
+            borradorfrecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j])*1000);
+
+            i = jf;
+        }
+
+        posicion++;
+    }
+
 }
