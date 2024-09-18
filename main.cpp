@@ -14,6 +14,7 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float*& frecuencia, in
 int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal);
 void imprimirlcd(int tipoOnda, int frecuencia, int amplitud);
 float pendiente(int x1, int x2, int y1, int y2);
+float absf(float m);
 
 
 
@@ -55,6 +56,7 @@ void loop(){
             puntos = new int [capPuntos];
             tiempos = new int [capPuntos];
         }
+      Serial.println("Adqusion started");
         estadoAdquisicion =! estadoAdquisicion;
         while (digitalRead(pulsador1) == HIGH) {
            delay(10);
@@ -83,9 +85,10 @@ void loop(){
     }
 
     if (estadoPulsador2){
+      Serial.println("Entra al analisis");
 
         int t_defecto = 10;
-        int posicion;
+        int posicion = 0;
 
         int *tipo = new int [t_defecto];
         float *amplitud = new float [t_defecto];
@@ -93,10 +96,16 @@ void loop(){
 
         analisis(posicion,tipo,amplitud,frecuencia,t_defecto,numPunto,puntos,tiempos);
 
-        for (int i=0;i<=posicion;i++){
+        for (int i=0;i<posicion;i++){
 
             imprimirlcd(tipo[i],frecuencia[i],amplitud[i]);
+
+          Serial.println(tipo[i]);
+        Serial.println(frecuencia[i]);
+      Serial.println(amplitud[i]);
+
         }
+
 
         liberarMemoria(puntos);
         liberarMemoria(tiempos);
@@ -110,19 +119,21 @@ void loop(){
 //implementacion de funciones
 
 void redimensionar(int *&arr, int &capacidad){
-    //Serial.println("redimensionar");
-    unsigned int nuevaCap = capacidad*2;
+    Serial.println("redimensionar");
+    int nuevaCap = capacidad*2;
     int *nuevoArr = new int [nuevaCap];
     for (unsigned int i = 0; i<capacidad;i++){
         nuevoArr[i] = arr[i];
     }
     delete [] arr;
     arr = nuevoArr;
+
     capacidad = nuevaCap;
+  Serial.println(nuevaCap);
     }
 
 void redimensionar_(float *&arr, int &capacidad){
-    unsigned int nuevaCap = capacidad*2;
+    int nuevaCap = capacidad*2;
     float *nuevoArr = new float [nuevaCap];
     for (unsigned int i = 0; i<capacidad;i++){
         nuevoArr[i] = arr[i];
@@ -153,18 +164,21 @@ void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiem
     if (dato != datoant){
         datoant = dato;
         puntos[numPunto] = dato;
-        ptTiempo = millis();
         tiempos[numPunto] = ptTiempo;
+
+                Serial.println(puntos[numPunto]);
         numPunto++;
 
-        if (numPunto>=capPuntos){
+
+        }
+  if (numPunto>=capPuntos){
+    Serial.println(numPunto);
           redimensionar(puntos,capPuntos);
           redimensionar (tiempos, capTiempos);
-        }
     }
 }
 
-void imprimirlcd(int tipoOnda, int frecuencia, int amplitud){
+void imprimirlcd(int tipoOnda, float frecuencia, float amplitud){
 
     lcd.clear();
 
@@ -184,17 +198,24 @@ void imprimirlcd(int tipoOnda, int frecuencia, int amplitud){
     lcd.print(frecuencia,1);
     lcd.print("Hz");
 
-    lcd.setCursor(8,1);
+    lcd.setCursor(9,1);
     lcd.print("A:");
     lcd.print(amplitud,1);
     lcd.print("V");
 
-    delay(200);
+    delay(500);
 }
 
 float pendiente(int x1, int x2, int y1, int y2){
   float m = static_cast<float>(y2-y1)/(x2-x1);
   return m;
+}
+float absf(float m){
+    if (m>=0){
+        return m;
+    }else {
+        return -m;
+    }
 }
 
 int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
@@ -205,12 +226,7 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
     float m;
 
     for (int i = jinicial;i<=jfinal;i+=2){
-        m = pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]);
-        if (m<=0){
-            pendientes[c] = -m;
-        }else{
-            pendientes[c] = m;
-        }
+        m = absf(pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]));
         c++;
 
         if (c>=tamanio){
@@ -227,7 +243,6 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
                 contador++;
             }
         }
-
         if(contador>maximaRepeticion){
             maximaRepeticion = contador;
         }
@@ -239,7 +254,7 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
     if (maximaRepeticion<3){
         return 1;
     }
-    else if (maximaRepeticion>(tamanio/2)){
+    else if (maximaRepeticion>(tamanio*0.7)){
         return 2;
     }
     else{
@@ -251,12 +266,14 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
 
     posicion = 0;
 
-    for (int i = 0;i<numPunto;i+=2){
+    for (int i = 0;i<=numPunto;i+=2){
 
-        if (puntos[i]==puntos[i+2] && puntos[i] == (-puntos[i+1]) || pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2])==0){
+        if ((puntos[i]==puntos[i+2] && puntos[i]==(abs(puntos[i+1]))) || pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2])==0){
             tipo[posicion]=1;
-            amplitud[posicion] = abs(puntos[i])/100;
-            frecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i]))/1000;
+            amplitud[posicion] = abs(puntos[i])/100.0;
+
+            frecuencia[posicion]=(1000.0/(tiempos[i+2]-tiempos[i]));
+            Serial.println(frecuencia[posicion]);
         }
         else{
 
@@ -298,8 +315,19 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
             //jf es la posicion final del periodo
 
             tipo[posicion]=calculoPorPendiente(puntos,tiempos,j,jf);
-            amplitud[posicion]=pico/100;
-            frecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j]))/1000;
+
+          if (tipo[posicion] == 1){
+            amplitud[posicion]=abs(puntos[i])/100.0;
+            frecuencia[posicion]=(1000.0/(tiempos[i+2]-tiempos[i]));
+          }else{
+
+            amplitud[posicion]=abs(pico/100.0);
+
+            Serial.println(tiempos[jf]);
+            Serial.println(tiempos[j]);
+            frecuencia[posicion]=(1000.0/(tiempos[jf]-tiempos[j]));
+          }
+
 
             i = jf;
         }
