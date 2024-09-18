@@ -6,11 +6,15 @@ Adafruit_LiquidCrystal lcd(0);
 
 //funciones
 void redimensionar(int *&arr, int &capacidad);
+void redimensionar_(float *&arr, int &capacidad);
+void liberarMemoria(int *&arr);
+void liberarMemoria_(float *& arr);
 void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiempos, int &numPunto, int&capPuntos, int &capTiempos);
-void liberarMemoria(int* &puntos, int* &tiempos, int &numPunto, int &capPuntos, int&capTiempos);
-int tipoOnda(int*& puntos, int *&tiempos, int &numPunto);
-int frecuencia(int*& puntos, int *&tiempos);
-int amplitud(int*& puntos, int *&tiempos, int &numPunto);
+void analisis(int &posicion, int*&tipo, float*& amplitud, float*& frecuencia, int t_defecto, int &numPunto,int *&puntos, int*& tiempos);
+int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal);
+void imprimirlcd(int tipoOnda, int frecuencia, int amplitud);
+float pendiente(int x1, int x2, int y1, int y2);
+
 
 
 //variables para leer los datos del generador
@@ -64,11 +68,14 @@ void loop(){
     }
 
     else{
-      liberarMemoria(puntos,tiempos,numPunto,capPuntos,capTiempos);
+        liberarMemoria(puntos);
+        liberarMemoria(tiempos);
+        numPunto = 0;
+        capPuntos = 50;
+        capTiempos = 50;
     }
 
     bool estadoPulsador2 = digitalRead(pulsador2);
-
     if (estadoPulsador2){
       while (digitalRead(pulsador2) == HIGH) {
           delay(10);
@@ -77,15 +84,26 @@ void loop(){
 
     if (estadoPulsador2){
 
-        for (int i=0;i<=posicion,i++){
+        int t_defecto = 10;
+        int posicion;
 
+        int *tipo = new int [t_defecto];
+        float *amplitud = new float [t_defecto];
+        float *frecuencia = new float [t_defecto];
 
-            imprimirlcd(tipo,frec,amp);
+        analisis(posicion,tipo,amplitud,frecuencia,t_defecto,numPunto,puntos,tiempos);
+
+        for (int i=0;i<=posicion;i++){
+
+            imprimirlcd(tipo[i],frecuencia[i],amplitud[i]);
         }
-        int tipo = tipoOnda(puntos, tiempos, numPunto);
-        int frec = frecuencia(puntos,tiempos)
-        int amp = 0;
 
+        liberarMemoria(puntos);
+        liberarMemoria(tiempos);
+
+        liberarMemoria(tipo);
+        liberarMemoria_(amplitud);
+        liberarMemoria_(frecuencia);
     }
 }//fin loop
 
@@ -103,6 +121,28 @@ void redimensionar(int *&arr, int &capacidad){
     capacidad = nuevaCap;
     }
 
+void redimensionar_(float *&arr, int &capacidad){
+    unsigned int nuevaCap = capacidad*2;
+    float *nuevoArr = new float [nuevaCap];
+    for (unsigned int i = 0; i<capacidad;i++){
+        nuevoArr[i] = arr[i];
+    }
+    delete [] arr;
+    arr = nuevoArr;
+    capacidad = nuevaCap;
+    }
+
+void liberarMemoria(int *&arr){
+    delete[]arr;
+    arr = nullptr;
+}
+
+void liberarMemoria_(float *&arr){
+    delete[]arr;
+    arr = nullptr;
+
+}
+
 void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiempos, int &numPunto, int&capPuntos, int &capTiempos){
 
     if (dato != datoant){
@@ -111,9 +151,6 @@ void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiem
         ptTiempo = millis();
         tiempos[numPunto] = ptTiempo;
         numPunto++;
-        //Serial.println("adquirir");
-        //Serial.println(dato);
-        //Serial.println(ptTiempo);
 
         if (numPunto>=capPuntos){
           redimensionar(puntos,capPuntos);
@@ -122,94 +159,7 @@ void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiem
     }
 }
 
-void liberarMemoria(int* &puntos, int* &tiempos, int &numPunto, int &capPuntos, int&capTiempos){
-
-  if (puntos != nullptr && tiempos != nullptr){
-
-    delete[] puntos;
-    delete[] tiempos;
-    puntos = nullptr;
-    tiempos = nullptr;
-    //Serial.println("liberar");
-
-    numPunto = 0;
-    capPuntos =50;
-    capTiempos = 50;
-  }
-}
-
-float frecuencia (int*& puntos, int *&tiempos){
-
-  int pico = puntos[0];
-  int i=0;
-
-  if (puntos[i]<puntos[i+1]){
-    while (puntos[i+1]>pico){
-        pico = puntos[i];
-        i++;
-    }
-  }else{
-    while (puntos[i+1]<pico){
-        pico = puntos[i];
-        i++;
-    }
-  }
-  int indexTiempoIni = i;
-
-  do{
-    i++;
-  }while(pico!=puntos[i])
-
-    int indexTiempoFinal = i;
-
-    return (tiempos[indexTiempoFinal]-tiempos[indexTiempoIni])/1000.0;
-
- }
-int tipoOnda(int*& puntos, int *&tiempos, int &numPuntos){
-  //Serial.println("Entra a tipo");
-  float mi;
-  float m;
-  //int pendientes[numPuntos/2];
-  for (int i = 0; i<numPuntos;i+=2){
-    mi = pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]);
-    m = pendiente (tiempos[i+2],tiempos[i+4],puntos[i+2],puntos[i+4]);
-
-    if (mi == 0 && m == 0){
-        return 1 ;
-    }else if (mi != m){
-        return 2;
-    }else{
-        return 3;
-    }
-
-  }
-
-
-}
-
-
-
-void amplitud (int*& puntos, int *&tiempos, int &numPunto){
-  int *amplitudes [];
-  int max;
-  int min;
-  for (int i=0;i<numPunto;i++){
-    if(puntos[i]>max){
-      max = puntos[i];
-    if (puntos[i]<min){
-      min = puntos[i];
-    }
-    }
-  }
-
-}
-
-float pendiente(int x1, int x2, int y1, int y2){
-  float m = static_cast<float>(y2-y1)/(x2-x1);
-  return m;
-}
-
-void imprimirlcd(int tipoOnda; int frecuencia, int amplitud){
+void imprimirlcd(int tipoOnda, int frecuencia, int amplitud){
 
     lcd.clear();
 
@@ -227,21 +177,47 @@ void imprimirlcd(int tipoOnda; int frecuencia, int amplitud){
     lcd.setCursor(0,1);
     lcd.print("F:");
     lcd.print(frecuencia,1);
-    lcd.print("Hz")
+    lcd.print("Hz");
 
     lcd.setCursor(8,1);
     lcd.print("A:");
     lcd.print(amplitud,1);
     lcd.print("V");
+
+    delay(200);
 }
 
-void borradorcompararpendientes(float*&pendientes;int tamaño){
+float pendiente(int x1, int x2, int y1, int y2){
+  float m = static_cast<float>(y2-y1)/(x2-x1);
+  return m;
+}
+
+int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
+
+    int tamanio = (jfinal-jinicial)/2;
+    float *pendientes = new float[tamanio];
+    int c =0;
+    float m;
+
+    for (int i = jinicial;i<=jfinal;i+=2){
+        m = pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]);
+        if (m<=0){
+            pendientes[c] = -m;
+        }else{
+            pendientes[c] = m;
+        }
+        c++;
+
+        if (c>=tamanio){
+            redimensionar_(pendientes,tamanio);
+        }
+    }
 
     int maximaRepeticion = 0;
 
-    for (int i = 0; i<tamaño,i++){
+    for (int i = 0; i<tamanio;i++){
         int contador = 1;
-        for (int j = i +1 ; j<tamaño;j++){
+        for (int j = i +1 ; j<tamanio;j++){
             if (pendientes[i]==pendientes[j]){
                 contador++;
             }
@@ -251,54 +227,34 @@ void borradorcompararpendientes(float*&pendientes;int tamaño){
             maximaRepeticion = contador;
         }
     }
-    if (maximaRepeticion>(tamaño/2)){
+
+    liberarMemoria_(pendientes);
+
+    if (maximaRepeticion>(tamanio/2)){
         return 2;
     }
-    else{
+    else if(contador<2){
+        return 4;
+    }else{
         return 3;
     }
 }
 
-void borradorpendientes(int *& puntos, int *& tiempos,int jinicial,int jfinal){
-    int tamaño = (jfinal-jinicial)/2 + 2;
-    float *pendientes = new int [tamaño];
-    int c =0;
-    float m;
-    for (int i = jinicial;i<=jfinal;i+=2){
-        m = pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]);
-        if (m<=0){
-            pendientes[c] = -m;
-        }else{
-            pendientes[c] = m;
-        }
-    }
+void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, int t_defecto, int &numPunto, int *&puntos, int*& tiempos){
 
-    if (borradorcompararpendientes(pendientes,tamaño)==2){
-        return 2;
-    }
-    else{
-        return 3;
-    }
-}
-
-void borrador(int &numPunto,int *&puntos, int*& tiempos){
-
-    int *borradortipo = new int [10];
-    float *borradoramplitud = new int [10];
-    float *borradorfrecuencia = new int [10];
-
-    int posicion = 0;
+    posicion = 0;
 
     for (int i = 0;i<numPunto;i+=2){
+
         if (puntos[i]==puntos[i+2] && puntos[i] == (-puntos[i+1])){
-            borradortipo[posicion]=1;
+            tipo[posicion]=1;
             if (puntos[i]<0) {
-                borradoramplitud[posicion]=((-puntos[i]+puntos[i+1])/2)/100;
+                amplitud[posicion]=((-puntos[i]+puntos[i+1])/2)/100;
                 }
             else {
-                borradoramplitud[posicion]=((puntos[i]-puntos[i+1])/2)/100;
+                amplitud[posicion]=((puntos[i]-puntos[i+1])/2)/100;
             }
-            borradorfrecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i])*1000);
+            frecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i])*1000);
         }
         else{
 
@@ -317,6 +273,7 @@ void borrador(int &numPunto,int *&puntos, int*& tiempos){
                 }
             }
             //j es la posicion del primer pico(sup/inf)
+
             int jf = j;
 
             int pico2 = puntos[j];
@@ -327,31 +284,39 @@ void borrador(int &numPunto,int *&puntos, int*& tiempos){
                 if (puntos[jf]>pico2){
                     pico2 = puntos[jf];
                 }
-            }while(pico!=puntos[jf])
+            }while(pico!=puntos[jf]);
             }else{//el pico es positivo
                 do{
                 jf++;
                 if (puntos[jf]<pico2){
                     pico2 = puntos[jf];
                 }
-            }while(pico!=puntos[jf])
+            }while(pico!=puntos[jf]);
             }
             //jf es la posicion final del periodo
 
-            borradortipo[posicion]=borradorpendientes(puntos,tiempos,j,jf);
+            tipo[posicion]=calculoPorPendiente(puntos,tiempos,j,jf);
 
             if (pico>0){
-                borradoramplitud[posicion]= ((pico-pico2)/2)/100;//porque pico2 es negativo
+                amplitud[posicion]= ((pico-pico2)/2)/100;//porque pico2 es negativo
             }else{
-                 borradoramplitud[posicion]= ((-pico+pico2)/2)/100;//porque pico2 es positivo
+                amplitud[posicion]= ((-pico+pico2)/2)/100;//porque pico2 es positivo
             }
 
-            borradorfrecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j])*1000);
+            frecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j])*1000);
 
             i = jf;
         }
 
         posicion++;
-    }
 
+        if (posicion>=t_defecto){
+            int t2 = t_defecto;
+            int t3 = t_defecto;
+
+            redimensionar(tipo,t_defecto);
+            redimensionar_(amplitud,t2);
+            redimensionar_(frecuencia,t3);
+        }
+    }
 }
