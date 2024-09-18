@@ -26,8 +26,8 @@ int pulsador2 = 4;
 int dato = 0;
 int ptTiempo = 0;
 
-int capPuntos = 50; //=capTiempos
-int capTiempos = 50;
+int capPuntos = 100; //=capTiempos
+int capTiempos = 100;
 
 int *puntos = nullptr;
 int *tiempos = nullptr;
@@ -71,8 +71,8 @@ void loop(){
         liberarMemoria(puntos);
         liberarMemoria(tiempos);
         numPunto = 0;
-        capPuntos = 50;
-        capTiempos = 50;
+        capPuntos = 100;
+        capTiempos = 100;
     }
 
     bool estadoPulsador2 = digitalRead(pulsador2);
@@ -133,13 +133,18 @@ void redimensionar_(float *&arr, int &capacidad){
     }
 
 void liberarMemoria(int *&arr){
-    delete[]arr;
-    arr = nullptr;
+    if (arr != nullptr){
+        delete[]arr;
+        arr = nullptr;
+    }
+
 }
 
 void liberarMemoria_(float *&arr){
-    delete[]arr;
-    arr = nullptr;
+    if (arr != nullptr){
+        delete[]arr;
+        arr = nullptr;
+    }
 
 }
 
@@ -228,14 +233,16 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
         }
     }
 
+
     liberarMemoria_(pendientes);
 
-    if (maximaRepeticion>(tamanio/2)){
+    if (maximaRepeticion<3){
+        return 1;
+    }
+    else if (maximaRepeticion>(tamanio/2)){
         return 2;
     }
-    else if(contador<2){
-        return 4;
-    }else{
+    else{
         return 3;
     }
 }
@@ -246,15 +253,10 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
 
     for (int i = 0;i<numPunto;i+=2){
 
-        if (puntos[i]==puntos[i+2] && puntos[i] == (-puntos[i+1])){
+        if (puntos[i]==puntos[i+2] && puntos[i] == (-puntos[i+1]) || pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2])==0){
             tipo[posicion]=1;
-            if (puntos[i]<0) {
-                amplitud[posicion]=((-puntos[i]+puntos[i+1])/2)/100;
-                }
-            else {
-                amplitud[posicion]=((puntos[i]-puntos[i+1])/2)/100;
-            }
-            frecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i])*1000);
+            amplitud[posicion] = abs(puntos[i])/100;
+            frecuencia[posicion]=(1.0/(tiempos[i+2]-tiempos[i]))/1000;
         }
         else{
 
@@ -296,14 +298,8 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
             //jf es la posicion final del periodo
 
             tipo[posicion]=calculoPorPendiente(puntos,tiempos,j,jf);
-
-            if (pico>0){
-                amplitud[posicion]= ((pico-pico2)/2)/100;//porque pico2 es negativo
-            }else{
-                amplitud[posicion]= ((-pico+pico2)/2)/100;//porque pico2 es positivo
-            }
-
-            frecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j])*1000);
+            amplitud[posicion]=pico/100;
+            frecuencia[posicion]=(1.0/(tiempos[jf]-tiempos[j]))/1000;
 
             i = jf;
         }
