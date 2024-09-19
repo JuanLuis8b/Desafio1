@@ -54,9 +54,9 @@ void loop(){
     if (estadoPulsador){
         if (puntos == nullptr && tiempos == nullptr){
             puntos = new int [capPuntos];
-            tiempos = new int [capPuntos];
+            tiempos = new int [capTiempos];
         }
-      Serial.println("Adqusion started");
+      Serial.println("Adquisicion started");
         estadoAdquisicion =! estadoAdquisicion;
         while (digitalRead(pulsador1) == HIGH) {
            delay(10);
@@ -100,15 +100,14 @@ void loop(){
 
             imprimirlcd(tipo[i],frecuencia[i],amplitud[i]);
 
-          Serial.println(tipo[i]);
-        Serial.println(frecuencia[i]);
-      Serial.println(amplitud[i]);
-
         }
 
 
         liberarMemoria(puntos);
         liberarMemoria(tiempos);
+        numPunto = 0;
+        capTiempos= 100;
+        capPuntos = 100;
 
         liberarMemoria(tipo);
         liberarMemoria_(amplitud);
@@ -127,9 +126,8 @@ void redimensionar(int *&arr, int &capacidad){
     }
     delete [] arr;
     arr = nuevoArr;
-
     capacidad = nuevaCap;
-  Serial.println(nuevaCap);
+
     }
 
 void redimensionar_(float *&arr, int &capacidad){
@@ -148,7 +146,6 @@ void liberarMemoria(int *&arr){
         delete[]arr;
         arr = nullptr;
     }
-
 }
 
 void liberarMemoria_(float *&arr){
@@ -156,27 +153,28 @@ void liberarMemoria_(float *&arr){
         delete[]arr;
         arr = nullptr;
     }
-
 }
 
 void adquirirDatos(int dato, int &datoant, int ptTiempo, int*&puntos, int*& tiempos, int &numPunto, int&capPuntos, int &capTiempos){
 
-    if (dato != datoant){
-        datoant = dato;
+  if (dato!=datoant){
+       datoant = dato;
+
+       if (numPunto>=capPuntos){
+
+          redimensionar(puntos,capPuntos);
+          redimensionar (tiempos, capTiempos);
+
+       }
+
         puntos[numPunto] = dato;
         tiempos[numPunto] = ptTiempo;
 
-                Serial.println(puntos[numPunto]);
         numPunto++;
-
-
-        }
-  if (numPunto>=capPuntos){
-    Serial.println(numPunto);
-          redimensionar(puntos,capPuntos);
-          redimensionar (tiempos, capTiempos);
+        Serial.println(dato);
     }
 }
+
 
 void imprimirlcd(int tipoOnda, float frecuencia, float amplitud){
 
@@ -210,6 +208,7 @@ float pendiente(int x1, int x2, int y1, int y2){
   float m = static_cast<float>(y2-y1)/(x2-x1);
   return m;
 }
+
 float absf(float m){
     if (m>=0){
         return m;
@@ -227,6 +226,7 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
 
     for (int i = jinicial;i<=jfinal;i+=2){
         m = absf(pendiente(tiempos[i],tiempos[i+2],puntos[i],puntos[i+2]));
+        pendientes[c]=m;
         c++;
 
         if (c>=tamanio){
@@ -251,7 +251,7 @@ int calculoPorPendiente(int *& puntos, int *& tiempos,int jinicial,int jfinal){
 
     liberarMemoria_(pendientes);
 
-    if (maximaRepeticion<3){
+    if (maximaRepeticion<2){
         return 1;
     }
     else if (maximaRepeticion>(tamanio*0.7)){
@@ -273,7 +273,6 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
             amplitud[posicion] = abs(puntos[i])/100.0;
 
             frecuencia[posicion]=(1000.0/(tiempos[i+2]-tiempos[i]));
-            Serial.println(frecuencia[posicion]);
         }
         else{
 
@@ -318,18 +317,15 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
 
           if (tipo[posicion] == 1){
             amplitud[posicion]=abs(puntos[i])/100.0;
-            frecuencia[posicion]=(1000.0/(tiempos[i+2]-tiempos[i]));
+            frecuencia[posicion]=(1000.0/(abs(tiempos[i+2]-tiempos[i])));
           }else{
 
             amplitud[posicion]=abs(pico/100.0);
 
-            Serial.println(tiempos[jf]);
-            Serial.println(tiempos[j]);
-            frecuencia[posicion]=(1000.0/(tiempos[jf]-tiempos[j]));
+            frecuencia[posicion]=(1000.0/(abs(tiempos[jf]-tiempos[j])));
           }
 
-
-            i = jf;
+            i = jf;//ubicamos el inicio del nuevo ciclo
         }
 
         posicion++;
@@ -344,3 +340,4 @@ void analisis(int &posicion, int*&tipo, float*& amplitud, float *&frecuencia, in
         }
     }
 }
+
